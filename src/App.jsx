@@ -488,7 +488,7 @@ export default function App() {
       {/* Footer */}
       <div className="mx-auto max-w-6xl px-4 py-10 text-xs text-zinc-500">
         <div>
-          <span className="font-semibold text-zinc-300">Disclaimer:</span> RNG uses block data and is not secure for large prizes. For production, use Chainlink VRF or commit-reveal.
+          <span className="font-semibold text-zinc-300">Disclaimer:</span> The lottery is free – just connect your wallet to join. No hidden costs, just a chance to win big!
         </div>
         <div className="mt-1">Contract: {CONTRACT_ADDRESS}</div>
       </div>
