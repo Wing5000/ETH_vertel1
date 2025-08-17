@@ -200,6 +200,12 @@ export default function App() {
           if (parsed?.name === "Result") {
             won = parsed.args.won;
             prize = parsed.args.prizeAmount;
+            addLog({
+              text: parsed.args.won
+                ? `Result → WIN ${formatEther(parsed.args.prizeAmount)} ETH`
+                : "Result → Loss",
+              txHash: rcpt.transactionHash,
+            });
           }
           if (parsed?.name === "PrizePaid") {
             addLog({
@@ -221,7 +227,7 @@ export default function App() {
         setStatus(`WIN! You won ${formatEther(prizeWei)} ETH 🎉`);
       } else if (won === false) {
         setWonState(false);
-        setStatus("");
+        setStatus("You lost. Better luck next time!");
       } else {
         setStatus("Finished. (No Result event decoded)");
       }
@@ -312,15 +318,15 @@ export default function App() {
     <span className="text-xs uppercase tracking-wider text-zinc-400">{children}</span>
   );
 
-  const ReadyMessage = () => (
+  const LostMessage = () => (
     <motion.div
-      key="ready"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      key="lose"
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="px-4 py-2 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 animate-pulse"
+      className="px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
     >
-      You are ready to spin!
+      You lost. Better luck next time!
     </motion.div>
   );
 
@@ -418,7 +424,7 @@ export default function App() {
                     className="px-4 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300"
                   >You WON! Payout: {formatEther(prizeWei || 0n)} ETH 🎉</motion.div>
                 )}
-                {wonState !== true && status === "" && <ReadyMessage />}
+                {wonState === false && <LostMessage />}
               </AnimatePresence>
               {loading && wonState === null ? (
                 <div className="relative w-full bg-zinc-700 rounded-full h-6 overflow-hidden">
