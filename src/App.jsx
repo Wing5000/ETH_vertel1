@@ -224,6 +224,11 @@ export default function App() {
       addLog({ text: `play(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       const rcpt = await tx.wait();
 
+      // refresh play timing so UI can re-enable once next block arrives
+      const playedBlock = BigInt(rcpt.blockNumber);
+      setLastPlayedBlock(playedBlock);
+      setCurrentBlock(playedBlock);
+
       let won = null;
       let prize = 0n;
       for (const log of rcpt.logs) {
