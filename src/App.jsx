@@ -463,7 +463,15 @@ export default function App() {
                       ? "bg-zinc-700 cursor-not-allowed"
                       : "bg-amber-500 hover:bg-amber-400 text-black"
                   }`}
-                >{canPlay ? "PLAY" : "Wait next block"}</button>
+                >
+                  {
+                    !account
+                      ? "Connect wallet to play"
+                      : canPlay
+                        ? "PLAY"
+                        : "Wait next block"
+                  }
+                </button>
               </div>
               <div className="text-xs text-zinc-400 mt-1">Any number. Adds entropy, doesn’t change odds.</div>
             </div>
