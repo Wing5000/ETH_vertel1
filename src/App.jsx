@@ -98,6 +98,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [wonState, setWonState] = useState(null);
   const [progressMessage, setProgressMessage] = useState("Drawing in progress...");
+  const [progress, setProgress] = useState(0);
   const [rejected, setRejected] = useState(false);
   const [logLines, setLogLines] = useState([]);
   const [recentResults, setRecentResults] = useState([]);
@@ -283,14 +284,21 @@ export default function App() {
       setLoading(true);
       setWonState(null);
       setStatus("");
-      setProgressMessage("Drawing in progress...");
+      setProgressMessage("Preparing play...");
+      setProgress(0);
       setRejected(false);
 
       const saltVal = BigInt(salt || "0");
       const overrides = { value: feeWei };
+      setProgress(20);
+      setProgressMessage("Sending transaction...");
       const tx = await contract.play(saltVal, overrides);
       addLog({ text: `play(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
+      setProgress(50);
+      setProgressMessage("Waiting for confirmation...");
       const rcpt = await tx.wait();
+      setProgress(80);
+      setProgressMessage("Processing result...");
 
       let won = null;
       let prize = 0n;
@@ -335,6 +343,7 @@ export default function App() {
       setStatus(e?.shortMessage || e?.message || "Tx failed");
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
+      setProgress(100);
       setLoading(false);
     }
   }
@@ -343,14 +352,21 @@ export default function App() {
     if (!contract) return;
     try {
       setLoading(true);
+      setProgress(0);
+      setProgressMessage("Preparing claim...");
       const tx = await contract.claim();
+      setProgress(50);
+      setProgressMessage("Waiting for confirmation...");
       addLog({ text: `claim(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       await tx.wait();
+      setProgress(90);
+      setProgressMessage("Finalizing...");
       setStatus("Claimed (if any pending)");
     } catch (e) {
       setStatus(e?.shortMessage || e?.message || "Claim failed");
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
+      setProgress(100);
       setLoading(false);
     }
   }
@@ -361,14 +377,21 @@ export default function App() {
       setLoading(true);
       setWonState(null);
       setStatus("");
-      setProgressMessage("Funding in action...");
+      setProgressMessage("Preparing funding...");
+      setProgress(0);
       setRejected(false);
+      setProgress(20);
+      setProgressMessage("Sending transaction...");
       const tx = await contract.fund({ value: parseEther(amountEth || "0") });
       addLog({
         text: `fund ${amountEth} ETH (tx: ${shortHash(tx.hash)})`,
         txHash: tx.hash,
       });
+      setProgress(60);
+      setProgressMessage("Waiting for confirmation...");
       await tx.wait();
+      setProgress(90);
+      setProgressMessage("Finalizing...");
       setStatus("Funded ✔");
     } catch (e) {
       if (
@@ -382,6 +405,7 @@ export default function App() {
       }
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
+      setProgress(100);
       setLoading(false);
     }
   }
@@ -408,20 +432,29 @@ export default function App() {
     if (!contract) return;
     try {
       setLoading(true);
+      setProgress(0);
+      setProgressMessage("Preparing parameters...");
       const prize = parseEther(pPrize || "0");
       const fee = parseEther(pFee || "0");
       const ppm = ppmFromPct(pPct || "0");
+      setProgress(20);
+      setProgressMessage("Sending transaction...");
       const tx = await contract.setParams(prize, fee, ppm);
       addLog({
         text: `setParams → prize ${pPrize} ETH, fee ${pFee} ETH, chance ${pPct}%`,
         txHash: tx.hash,
       });
+      setProgress(60);
+      setProgressMessage("Waiting for confirmation...");
       await tx.wait();
+      setProgress(90);
+      setProgressMessage("Finalizing...");
       setStatus("Parameters updated");
     } catch (e) {
       setStatus(e?.shortMessage || e?.message || "setParams failed");
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
+      setProgress(100);
       setLoading(false);
     }
   }
@@ -557,8 +590,13 @@ export default function App() {
               </AnimatePresence>
               {loading && wonState === null && (
                 <div className="relative w-full bg-zinc-700 rounded-full h-6 overflow-hidden">
-                  <div className="progress-bar bg-indigo-400 h-full w-full flex items-center justify-center">
-                    <span className="text-xs font-semibold text-indigo-900">{progressMessage}</span>
+                  <div
+                    className="progress-bar bg-indigo-400 h-full flex items-center justify-center transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  >
+                    <span className="text-xs font-semibold text-indigo-900">
+                      {progressMessage} {progress}%
+                    </span>
                   </div>
                 </div>
               )}
