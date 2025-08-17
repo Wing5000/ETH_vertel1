@@ -246,7 +246,7 @@ export default function App() {
         setRecentResults(
           events
             .filter((ev) => ev.args)
-            .slice(-5)
+            .slice(-4)
             .reverse()
             .map((ev) => ({
               player: ev.args.player,
