@@ -115,8 +115,12 @@ export default function App() {
     return `${s.slice(0, 10)}…`;
   };
 
+  // POPRAWKA: Ulepszona logika sprawdzania czy można grać
   const canPlay = useMemo(() => {
     if (!account) return false;
+    // Jeśli nigdy nie grałeś (nextAllowedBlock = 0), możesz grać
+    if (nextAllowedBlock === 0n) return true;
+    // W przeciwnym razie sprawdź czy obecny blok >= następny dozwolony
     return currentBlock >= nextAllowedBlock;
   }, [account, currentBlock, nextAllowedBlock]);
 
@@ -154,6 +158,18 @@ export default function App() {
 
     const c = new Contract(CONTRACT_ADDRESS, ABI, s);
     setContract(c);
+
+    // POPRAWKA: Od razu pobierz dane użytkownika po połączeniu
+    if (accounts[0]) {
+      try {
+        const blk = await prov.getBlockNumber();
+        const next = await c.nextAllowedBlock(accounts[0]);
+        setCurrentBlock(BigInt(blk));
+        setNextAllowedBlock(next);
+      } catch (e) {
+        console.error("Error loading user data on connect:", e);
+      }
+    }
   }
 
   function disconnect() {
@@ -165,7 +181,9 @@ export default function App() {
     setPendingMine(0n);
     setLastPlayedBlock(0n);
     setCurrentBlock(0n);
-    setNextAllowedBlock(0n);
+    setNextAllowedBlock(0n); // POPRAWKA: Resetuj także nextAllowedBlock
+    setWonState(null); // POPRAWKA: Resetuj stan wygranej
+    setStatus(""); // POPRAWKA: Wyczyść status
   }
 
   useEffect(() => {
@@ -185,7 +203,9 @@ export default function App() {
         setFeeWei(f);
         setChancePpm(Number(w));
         setContractBal(bal);
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error loading contract basics:", e);
+      }
     }
 
     loadBasics();
@@ -196,16 +216,45 @@ export default function App() {
     };
   }, [contract]);
 
+  // POPRAWKA: Dodaj listener na zmianę bloku który aktualizuje nextAllowedBlock
+  useEffect(() => {
+    if (!provider || !account || !contract) return;
+    let mounted = true;
+
+    async function handleBlockUpdate(blockNumber) {
+      if (!mounted) return;
+      setCurrentBlock(BigInt(blockNumber));
+      
+      // Zawsze aktualizuj nextAllowedBlock gdy zmienia się blok
+      try {
+        const next = await contract.nextAllowedBlock(account);
+        if (mounted) {
+          setNextAllowedBlock(next);
+        }
+      } catch (e) {
+        console.error("Error updating nextAllowedBlock:", e);
+      }
+    }
+
+    provider.on("block", handleBlockUpdate);
+    
+    // Natychmiast pobierz obecny blok
+    provider.getBlockNumber().then(handleBlockUpdate);
+
+    return () => {
+      mounted = false;
+      provider.off("block", handleBlockUpdate);
+    };
+  }, [provider, account, contract]);
+
   useEffect(() => {
     if (!contract || !provider) return;
     let mounted = true;
     const filter = contract.filters.Result();
-    let lastBlock = 0;
 
     async function loadRecent() {
       try {
         const latest = await provider.getBlockNumber();
-        lastBlock = latest;
         const from = latest > 5000 ? latest - 5000 : 0;
         const events = await contract.queryFilter(filter, from, latest);
         if (!mounted) return;
@@ -220,53 +269,22 @@ export default function App() {
               txHash: ev.transactionHash,
             }))
         );
-      } catch {}
-    }
-
-    async function handleBlock(blockNumber) {
-      setCurrentBlock(BigInt(blockNumber));
-      try {
-        const events = await contract.queryFilter(filter, lastBlock + 1, blockNumber);
-        if (!mounted) return;
-        if (events.length) {
-          setRecentResults((r) => {
-            const newEntries = events
-              .filter((ev) => ev.args)
-              .reverse()
-              .map((ev) => ({
-                player: ev.args.player,
-                won: ev.args.won,
-                txHash: ev.transactionHash,
-              }));
-            return [...newEntries, ...r].slice(0, 5);
-          });
-        }
-        lastBlock = blockNumber;
-      } catch {}
-      if (account) {
-        try {
-          const next = await contract.nextAllowedBlock(account);
-          if (mounted) setNextAllowedBlock(next);
-        } catch {}
+      } catch (e) {
+        console.error("Error loading recent results:", e);
       }
     }
 
-    loadRecent().then(() => {
-      if (!mounted) return;
-      provider.on("block", handleBlock);
-    });
-
+    loadRecent();
     return () => {
       mounted = false;
-      provider.off("block", handleBlock);
     };
-  }, [contract, provider, account]);
+  }, [contract, provider]);
 
   useEffect(() => {
     if (!contract || !provider || !account) return;
     let mounted = true;
 
-    async function loadUser() {
+    async function loadUserData() {
       try {
         const [pend, last, next, blk] = await Promise.all([
           contract.pendingPrizes(account),
@@ -279,11 +297,13 @@ export default function App() {
         setLastPlayedBlock(last);
         setNextAllowedBlock(next);
         setCurrentBlock(BigInt(blk));
-      } catch (e) {}
+      } catch (e) {
+        console.error("Error loading user data:", e);
+      }
     }
 
-    loadUser();
-    const iv = setInterval(loadUser, 5000);
+    loadUserData();
+    const iv = setInterval(loadUserData, 3000); // Częstsze odświeżanie
     return () => {
       mounted = false;
       clearInterval(iv);
@@ -355,9 +375,17 @@ export default function App() {
       const tx = await contract.play(saltVal, overrides);
       addLog({ text: `play(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       const rcpt = await tx.wait();
-      setLastPlayedBlock(BigInt(rcpt.blockNumber));
-      setCurrentBlock(BigInt(rcpt.blockNumber));
-      setNextAllowedBlock(BigInt(rcpt.blockNumber) + 1n);
+
+      // POPRAWKA: Natychmiast po transakcji pobierz zaktualizowane dane
+      const [newLastPlayed, newNext, newBlock] = await Promise.all([
+        contract.lastPlayedBlock(account),
+        contract.nextAllowedBlock(account),
+        provider.getBlockNumber()
+      ]);
+
+      setLastPlayedBlock(newLastPlayed);
+      setNextAllowedBlock(newNext);
+      setCurrentBlock(BigInt(newBlock));
 
       let won = null;
       let prize = 0n;
@@ -385,6 +413,9 @@ export default function App() {
               text: `PrizePending → ${formatEther(parsed.args.amount)} ETH`,
               txHash: rcpt.transactionHash,
             });
+            // Aktualizuj pending prizes
+            const newPending = await contract.pendingPrizes(account);
+            setPendingMine(newPending);
           }
         } catch {}
       }
@@ -399,7 +430,12 @@ export default function App() {
         setStatus("Finished. (No Result event decoded)");
       }
     } catch (e) {
-      setStatus(e?.shortMessage || e?.message || "Tx failed");
+      if (e?.code === "ACTION_REJECTED" || /user rejected/i.test(e?.message || "")) {
+        setRejected(true);
+        setStatus("");
+      } else {
+        setStatus(e?.shortMessage || e?.message || "Tx failed");
+      }
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
@@ -414,6 +450,9 @@ export default function App() {
       addLog({ text: `claim(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       await tx.wait();
       setStatus("Claimed (if any pending)");
+      // Odśwież pending prizes
+      const newPending = await contract.pendingPrizes(account);
+      setPendingMine(newPending);
     } catch (e) {
       setStatus(e?.shortMessage || e?.message || "Claim failed");
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
@@ -508,7 +547,7 @@ export default function App() {
     </motion.div>
   );
 
-  const LostMessage = () => (
+const LostMessage = () => (
     <motion.div
       key="lose"
       initial={{ scale: 0.9, opacity: 0 }}
@@ -519,6 +558,19 @@ export default function App() {
       You lost. Better luck next time!
     </motion.div>
   );
+
+  // Debug info - możesz usunąć w produkcji
+  useEffect(() => {
+    if (account) {
+      console.log("Debug info:", {
+        account,
+        currentBlock: currentBlock.toString(),
+        nextAllowedBlock: nextAllowedBlock.toString(),
+        canPlay,
+        lastPlayedBlock: lastPlayedBlock.toString()
+      });
+    }
+  }, [account, currentBlock, nextAllowedBlock, canPlay, lastPlayedBlock]);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-black via-zinc-900 to-black text-zinc-100">
