@@ -500,6 +500,15 @@ export default function App() {
 
         <div className="space-y-4">
           <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <div className="text-lg font-semibold">How it works</div>
+            <ul className="mt-3 list-disc list-inside space-y-1 text-sm text-zinc-300">
+              <li>Connect your wallet.</li>
+              <li>Enter any number and press Play.</li>
+              <li>The app draws a random result.</li>
+              <li>If you win, claim your ETH prize.</li>
+            </ul>
+          </div>
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-5">
             <div className="text-lg font-semibold">Your wallet</div>
             <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
               <div>
