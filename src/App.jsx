@@ -418,7 +418,7 @@ export default function App() {
 
       {/* Hero panel */}
       <div className="mx-auto max-w-6xl px-4 grid md:grid-cols-3 gap-4">
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 space-y-4">
           <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
@@ -495,6 +495,22 @@ export default function App() {
                 </div>
               )}
             </div>
+          </div>
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <div className="text-lg font-semibold">How it works</div>
+            <ul className="mt-3 list-disc list-inside space-y-1 text-sm text-zinc-300">
+              {["Connect your wallet.", "Enter any number and press Play.", "The app draws a random result.", "If you win, claim your ETH prize."].map((step, i) => (
+                <motion.li
+                  key={i}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.2 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  {step}
+                </motion.li>
+              ))}
+            </ul>
           </div>
         </div>
 
