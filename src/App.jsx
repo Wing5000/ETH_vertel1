@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrowserProvider, Contract, formatEther, parseEther } from "ethers";
+import logo from "./assets/tubbly-logo.svg";
 
 /**
  * 🎰 BlockInstantLottery — Casino-style dApp UI (Sepolia)
@@ -303,7 +304,7 @@ export default function App() {
       {/* Top bar */}
       <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">🎰</span>
+          <img src={logo} alt="Tubbly logo" className="h-8 w-auto" />
           <div className="font-semibold text-xl">Lucky Block — Instant Lottery (Sepolia)</div>
           <span className="text-xs ml-2 rounded-full bg-emerald-700/30 px-2 py-0.5 border border-emerald-600/40">Testnet</span>
         </div>
