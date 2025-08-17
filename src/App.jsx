@@ -924,17 +924,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* How it works */}
-      <div className="mx-auto max-w-6xl px-4 py-10 text-zinc-100">
-        <h2 className="text-2xl font-bold mb-4">How it works</h2>
-        <ul className="list-disc pl-5 space-y-2 text-sm text-zinc-300">
-          <li>Connect your wallet.</li>
-          <li>Pay the entry fee to spin.</li>
-          <li>One play per block for each address.</li>
-          <li>Win and claim your prize instantly.</li>
-        </ul>
-      </div>
-
       {/* Footer */}
       <div className="mx-auto max-w-6xl px-4 py-10 text-xs text-zinc-500">
         <div>
