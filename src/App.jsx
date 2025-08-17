@@ -751,20 +751,62 @@ export default function App() {
               </div>
               <div>
                 <div className="text-lg font-semibold">Recent winners/losers</div>
-                <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+                <ul className="mt-3 space-y-2 text-sm">
                   {recentResults.length === 0 && (
                     <li className="text-zinc-400">No plays yet.</li>
                   )}
                   {recentResults.map((r, idx) => (
-                    <li key={idx} className="flex justify-between">
-                      <span className="font-mono">{shortAddr(r.player)}</span>
+                    <li
+                      key={idx}
+                      className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-800/40 px-3 py-2"
+                    >
+                      <span className="font-mono text-zinc-200">
+                        {shortAddr(r.player)}
+                      </span>
                       <a
                         href={`https://sepolia.etherscan.io/tx/${r.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={r.won ? "text-emerald-400" : "text-red-400"}
+                        className="flex items-center"
                       >
-                        {r.won ? "Won" : "Lost"}
+                        <span
+                          className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            r.won
+                              ? "bg-emerald-500/20 text-emerald-400"
+                              : "bg-red-500/20 text-red-400"
+                          }`}
+                        >
+                          {r.won ? (
+                            <svg
+                              className="h-3 w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          ) : (
+                            <svg
+                              className="h-3 w-3"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          )}
+                          {r.won ? "Won" : "Lost"}
+                        </span>
                       </a>
                     </li>
                   ))}
