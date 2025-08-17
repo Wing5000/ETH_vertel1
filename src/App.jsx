@@ -94,7 +94,7 @@ export default function App() {
 
   // UI state
   const [salt, setSalt] = useState(String(Math.floor(Math.random() * 1e12)));
-  const [status, setStatus] = useState("Ready");
+  const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [wonState, setWonState] = useState(null);
   const [logLines, setLogLines] = useState([]);
@@ -221,7 +221,7 @@ export default function App() {
         setStatus(`WIN! You won ${formatEther(prizeWei)} ETH 🎉`);
       } else if (won === false) {
         setWonState(false);
-        setStatus("Miss! Try again next block.");
+        setStatus("");
       } else {
         setStatus("Finished. (No Result event decoded)");
       }
@@ -310,6 +310,18 @@ export default function App() {
 
   const Label = ({ children }) => (
     <span className="text-xs uppercase tracking-wider text-zinc-400">{children}</span>
+  );
+
+  const ReadyMessage = () => (
+    <motion.div
+      key="ready"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="px-4 py-2 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 animate-pulse"
+    >
+      You are ready to spin!
+    </motion.div>
   );
 
   return (
@@ -406,22 +418,19 @@ export default function App() {
                     className="px-4 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300"
                   >You WON! Payout: {formatEther(prizeWei || 0n)} ETH 🎉</motion.div>
                 )}
-                {wonState === false && (
-                  <motion.div
-                    key="lose"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
-                  >Miss! Try again next block.</motion.div>
-                )}
+                {wonState !== true && status === "" && <ReadyMessage />}
               </AnimatePresence>
               {loading && wonState === null ? (
-                <div className="w-full bg-zinc-700 rounded-full h-1 overflow-hidden">
-                  <div className="progress-bar bg-indigo-400 h-1 w-1/2" />
+                <div className="relative w-full bg-zinc-700 rounded-full h-6 overflow-hidden">
+                  <div className="progress-bar bg-indigo-400 h-full w-1/2" />
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="marquee whitespace-nowrap text-xs font-semibold text-zinc-100">
+                      Drawing in progress...
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="text-zinc-400 text-sm">{status}</div>
+                status && <div className="text-zinc-400 text-sm">{status}</div>
               )}
             </div>
           </div>
