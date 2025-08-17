@@ -97,6 +97,8 @@ export default function App() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [wonState, setWonState] = useState(null);
+  const [progressMessage, setProgressMessage] = useState("Drawing in progress...");
+  const [rejected, setRejected] = useState(false);
   const [logLines, setLogLines] = useState([]);
 
   const addLog = (entry) => setLogLines((l) => [entry, ...l].slice(0, 50));
@@ -185,6 +187,8 @@ export default function App() {
       setLoading(true);
       setWonState(null);
       setStatus("");
+      setProgressMessage("Drawing in progress...");
+      setRejected(false);
 
       const saltVal = BigInt(salt || "0");
       const overrides = { value: feeWei };
@@ -259,6 +263,10 @@ export default function App() {
     if (!contract || !signer) return;
     try {
       setLoading(true);
+      setWonState(null);
+      setStatus("");
+      setProgressMessage("Funding in action...");
+      setRejected(false);
       const tx = await contract.fund({ value: parseEther(amountEth || "0") });
       addLog({
         text: `fund ${amountEth} ETH (tx: ${shortHash(tx.hash)})`,
@@ -267,7 +275,15 @@ export default function App() {
       await tx.wait();
       setStatus("Funded ✔");
     } catch (e) {
-      setStatus(e?.shortMessage || e?.message || "Fund failed");
+      if (
+        e?.code === "ACTION_REJECTED" ||
+        /user rejected/i.test(e?.shortMessage || e?.message || "")
+      ) {
+        setRejected(true);
+        setStatus("");
+      } else {
+        setStatus(e?.shortMessage || e?.message || "Fund failed");
+      }
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
@@ -327,6 +343,18 @@ export default function App() {
       className="w-full text-center px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
     >
       You lost. Better luck next time!
+    </motion.div>
+  );
+
+  const RejectedMessage = () => (
+    <motion.div
+      key="rejected"
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="w-full text-center px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
+    >
+      User rejected action.
     </motion.div>
   );
 
@@ -425,15 +453,16 @@ export default function App() {
                   >You WON! Payout: {formatEther(prizeWei || 0n)} ETH 🎉</motion.div>
                 )}
                 {wonState === false && <LostMessage />}
+                {rejected && <RejectedMessage />}
               </AnimatePresence>
               {loading && wonState === null ? (
                 <div className="relative w-full bg-zinc-700 rounded-full h-6 overflow-hidden">
                   <div className="progress-bar bg-indigo-400 h-full w-full flex items-center justify-center">
-                    <span className="text-xs font-semibold text-indigo-900">Drawing in progress...</span>
+                    <span className="text-xs font-semibold text-indigo-900">{progressMessage}</span>
                   </div>
                 </div>
               ) : (
-                status && <div className="text-zinc-400 text-sm">{status}</div>
+                !rejected && status && <div className="text-zinc-400 text-sm">{status}</div>
               )}
             </div>
           </div>
