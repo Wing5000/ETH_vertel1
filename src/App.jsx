@@ -91,6 +91,7 @@ export default function App() {
   const [pendingMine, setPendingMine] = useState(0n);
   const [lastPlayedBlock, setLastPlayedBlock] = useState(0n);
   const [currentBlock, setCurrentBlock] = useState(0n);
+  const [nextAllowedBlock, setNextAllowedBlock] = useState(0n);
 
   // UI state
   const [salt, setSalt] = useState(String(Math.floor(Math.random() * 1e12)));
@@ -116,9 +117,8 @@ export default function App() {
 
   const canPlay = useMemo(() => {
     if (!account) return false;
-    if (lastPlayedBlock === 0n) return true;
-    return lastPlayedBlock < currentBlock;
-  }, [account, lastPlayedBlock, currentBlock]);
+    return currentBlock >= nextAllowedBlock;
+  }, [account, currentBlock, nextAllowedBlock]);
 
   useEffect(() => {
     if (!window.ethereum) return;
@@ -162,6 +162,10 @@ export default function App() {
     setAccount("");
     setContract(null);
     setNetworkOk(false);
+    setPendingMine(0n);
+    setLastPlayedBlock(0n);
+    setCurrentBlock(0n);
+    setNextAllowedBlock(0n);
   }
 
   useEffect(() => {
@@ -239,6 +243,12 @@ export default function App() {
         }
         lastBlock = blockNumber;
       } catch {}
+      if (account) {
+        try {
+          const next = await contract.nextAllowedBlock(account);
+          if (mounted) setNextAllowedBlock(next);
+        } catch {}
+      }
     }
 
     loadRecent().then(() => {
@@ -250,7 +260,7 @@ export default function App() {
       mounted = false;
       provider.off("block", handleBlock);
     };
-  }, [contract, provider]);
+  }, [contract, provider, account]);
 
   useEffect(() => {
     if (!contract || !provider || !account) return;
@@ -258,14 +268,16 @@ export default function App() {
 
     async function loadUser() {
       try {
-        const [pend, last, blk] = await Promise.all([
+        const [pend, last, next, blk] = await Promise.all([
           contract.pendingPrizes(account),
           contract.lastPlayedBlock(account),
+          contract.nextAllowedBlock(account),
           provider.getBlockNumber(),
         ]);
         if (!mounted) return;
         setPendingMine(pend);
         setLastPlayedBlock(last);
+        setNextAllowedBlock(next);
         setCurrentBlock(BigInt(blk));
       } catch (e) {}
     }
@@ -345,6 +357,7 @@ export default function App() {
       const rcpt = await tx.wait();
       setLastPlayedBlock(BigInt(rcpt.blockNumber));
       setCurrentBlock(BigInt(rcpt.blockNumber));
+      setNextAllowedBlock(BigInt(rcpt.blockNumber) + 1n);
 
       let won = null;
       let prize = 0n;
