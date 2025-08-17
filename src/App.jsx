@@ -111,6 +111,14 @@ export default function App() {
     return lastPlayedBlock < currentBlock;
   }, [account, lastPlayedBlock, currentBlock]);
 
+  useEffect(() => {
+    if (!window.ethereum) return;
+    const prov = new BrowserProvider(window.ethereum);
+    setProvider(prov);
+    const c = new Contract(CONTRACT_ADDRESS, ABI, prov);
+    setContract(c);
+  }, []);
+
   async function connect() {
     if (!window.ethereum) {
       alert("Please install MetaMask");
@@ -148,33 +156,53 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (!contract || !provider || !account) return;
+    if (!contract) return;
     let mounted = true;
 
-    async function loadAll() {
+    async function loadBasics() {
       try {
-        const [p, f, w, bal, pend, last, blk] = await Promise.all([
+        const [p, f, w, bal] = await Promise.all([
           contract.prizeWei(),
           contract.entryFeeWei(),
           contract.winChancePpm(),
           contract.contractBalance(),
-          contract.pendingPrizes(account),
-          contract.lastPlayedBlock(account),
-          provider.getBlockNumber(),
         ]);
         if (!mounted) return;
         setPrizeWei(p);
         setFeeWei(f);
         setChancePpm(Number(w));
         setContractBal(bal);
+      } catch (e) {}
+    }
+
+    loadBasics();
+    const iv = setInterval(loadBasics, 5000);
+    return () => {
+      mounted = false;
+      clearInterval(iv);
+    };
+  }, [contract]);
+
+  useEffect(() => {
+    if (!contract || !provider || !account) return;
+    let mounted = true;
+
+    async function loadUser() {
+      try {
+        const [pend, last, blk] = await Promise.all([
+          contract.pendingPrizes(account),
+          contract.lastPlayedBlock(account),
+          provider.getBlockNumber(),
+        ]);
+        if (!mounted) return;
         setPendingMine(pend);
         setLastPlayedBlock(last);
         setCurrentBlock(BigInt(blk));
       } catch (e) {}
     }
 
-    loadAll();
-    const iv = setInterval(loadAll, 5000);
+    loadUser();
+    const iv = setInterval(loadUser, 5000);
     return () => {
       mounted = false;
       clearInterval(iv);
