@@ -135,6 +135,14 @@ export default function App() {
     setContract(c);
   }
 
+  function disconnect() {
+    setProvider(null);
+    setSigner(null);
+    setAccount("");
+    setContract(null);
+    setNetworkOk(false);
+  }
+
   useEffect(() => {
     if (!contract || !provider || !account) return;
     let mounted = true;
@@ -307,6 +315,10 @@ export default function App() {
                 className="px-3 py-1 rounded-xl bg-zinc-800/60 hover:bg-zinc-700/60 border border-zinc-700 text-sm"
                 onClick={() => navigator.clipboard.writeText(account)}
               >Copy</button>
+              <button
+                className="px-3 py-1 rounded-xl bg-zinc-800/60 hover:bg-zinc-700/60 border border-zinc-700 text-sm"
+                onClick={disconnect}
+              >Disconnect</button>
             </div>
           ) : (
             <button
