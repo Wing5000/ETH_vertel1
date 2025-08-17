@@ -145,6 +145,17 @@ export default function App() {
 
     const c = new Contract(CONTRACT_ADDRESS, ABI, s);
     setContract(c);
+
+    try {
+      const [pend, last, blk] = await Promise.all([
+        c.pendingPrizes(accounts[0]),
+        c.lastPlayedBlock(accounts[0]),
+        prov.getBlockNumber(),
+      ]);
+      setPendingMine(pend);
+      setLastPlayedBlock(last);
+      setCurrentBlock(BigInt(blk));
+    } catch {}
   }
 
   function disconnect() {
@@ -153,6 +164,9 @@ export default function App() {
     setAccount("");
     setContract(null);
     setNetworkOk(false);
+    setPendingMine(0n);
+    setLastPlayedBlock(0n);
+    setCurrentBlock(0n);
   }
 
   useEffect(() => {
