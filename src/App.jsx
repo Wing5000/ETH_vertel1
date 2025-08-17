@@ -100,10 +100,19 @@ export default function App() {
   const [progressMessage, setProgressMessage] = useState("Drawing in progress...");
   const [rejected, setRejected] = useState(false);
   const [logLines, setLogLines] = useState([]);
+  const [recentResults, setRecentResults] = useState([]);
 
   const addLog = (entry) => setLogLines((l) => [entry, ...l].slice(0, 50));
-  const shortAddr = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
-  const shortHash = (h) => (h ? `${h.slice(0, 10)}…` : "");
+  const shortAddr = (a) => {
+    if (!a) return "";
+    const s = String(a);
+    return `${s.slice(0, 6)}…${s.slice(-4)}`;
+  };
+  const shortHash = (h) => {
+    if (!h) return "";
+    const s = String(h);
+    return `${s.slice(0, 10)}…`;
+  };
 
   const canPlay = useMemo(() => {
     if (!account) return false;
@@ -182,6 +191,45 @@ export default function App() {
       clearInterval(iv);
     };
   }, [contract]);
+
+  useEffect(() => {
+    if (!contract || !provider) return;
+    let mounted = true;
+    const filter = contract.filters.Result();
+
+    async function loadRecent() {
+      try {
+        const latest = await provider.getBlockNumber();
+        const from = latest > 5000 ? latest - 5000 : 0;
+        const events = await contract.queryFilter(filter, from, latest);
+        if (!mounted) return;
+        setRecentResults(
+          events
+            .filter((ev) => ev.args)
+            .slice(-5)
+            .reverse()
+            .map((ev) => ({
+              player: ev.args.player,
+              won: ev.args.won,
+              txHash: ev.transactionHash,
+            }))
+        );
+      } catch {}
+    }
+
+    loadRecent();
+    contract.on(filter, (player, won, prizeAmount, event) => {
+      if (!mounted) return;
+      if (!event?.transactionHash) return;
+      setRecentResults((r) =>
+        [{ player, won: Boolean(won), txHash: event.transactionHash }, ...r].slice(0, 5)
+      );
+    });
+    return () => {
+      mounted = false;
+      contract.removeAllListeners(filter);
+    };
+  }, [contract, provider]);
 
   useEffect(() => {
     if (!contract || !provider || !account) return;
@@ -497,33 +545,62 @@ export default function App() {
             </div>
           </div>
           <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <div className="text-lg font-semibold">How it works</div>
-            <ul className="mt-3 space-y-3 text-sm text-zinc-300">
-              {[
-                "Connect your wallet.",
-                "Enter any number and press Play.",
-                "The app draws a random result.",
-                "If you win, claim your ETH prize.",
-              ].map((step, i) => (
-                <motion.li
-                  key={i}
-                  className="flex items-center"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.3 }}
-                >
-                  <motion.span
-                    initial={{ scale: 0, rotate: -90 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: i * 0.3 + 0.15, type: "spring", stiffness: 300 }}
-                    className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-indigo-900"
-                  >
-                    {i + 1}
-                  </motion.span>
-                  <motion.span whileHover={{ x: 4, color: "#fff" }}>{step}</motion.span>
-                </motion.li>
-              ))}
-            </ul>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-lg font-semibold">How it works</div>
+                <ul className="mt-3 space-y-3 text-sm text-zinc-300">
+                  {[
+                    "Connect your wallet.",
+                    "Enter any number and press Play.",
+                    "The app draws a random result.",
+                    "If you win, claim your ETH prize.",
+                  ].map((step, i) => (
+                    <motion.li
+                      key={i}
+                      className="flex items-center"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.3 }}
+                    >
+                      <motion.span
+                        initial={{ scale: 0, rotate: -90 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{
+                          delay: i * 0.3 + 0.15,
+                          type: "spring",
+                          stiffness: 300,
+                        }}
+                        className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-indigo-900"
+                      >
+                        {i + 1}
+                      </motion.span>
+                      <motion.span whileHover={{ x: 4, color: "#fff" }}>{step}</motion.span>
+                    </motion.li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="text-lg font-semibold">Recent winners/losers</div>
+                <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+                  {recentResults.length === 0 && (
+                    <li className="text-zinc-400">No plays yet.</li>
+                  )}
+                  {recentResults.map((r, idx) => (
+                    <li key={idx} className="flex justify-between">
+                      <span className="font-mono">{shortAddr(r.player)}</span>
+                      <a
+                        href={`https://sepolia.etherscan.io/tx/${r.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={r.won ? "text-emerald-400" : "text-red-400"}
+                      >
+                        {r.won ? "Won" : "Lost"}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
 
