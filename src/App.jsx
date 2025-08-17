@@ -545,43 +545,43 @@ export default function App() {
             </div>
           </div>
           <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-5">
-            <div className="text-lg font-semibold">How it works</div>
-            <div className="mt-3 grid md:grid-cols-2 gap-4 items-center">
-              <ul className="space-y-3 text-sm text-zinc-300">
-                {[
-                  "Connect your wallet.",
-                  "Enter any number and press Play.",
-                  "The app draws a random result.",
-                  "If you win, claim your ETH prize.",
-                ].map((step, i) => (
-                  <motion.li
-                    key={i}
-                    className="flex items-center"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.3 }}
-                  >
-                    <motion.span
-                      initial={{ scale: 0, rotate: -90 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{
-                        delay: i * 0.3 + 0.15,
-                        type: "spring",
-                        stiffness: 300,
-                      }}
-                      className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-indigo-900"
-                    >
-                      {i + 1}
-                    </motion.span>
-                    <motion.span whileHover={{ x: 4, color: "#fff" }}>{step}</motion.span>
-                  </motion.li>
-                ))}
-              </ul>
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <div className="mb-2 text-sm font-semibold text-zinc-300">
-                  Recent winners/losers
-                </div>
-                <ul className="space-y-2 text-sm text-zinc-300">
+                <div className="text-lg font-semibold">How it works</div>
+                <ul className="mt-3 space-y-3 text-sm text-zinc-300">
+                  {[
+                    "Connect your wallet.",
+                    "Enter any number and press Play.",
+                    "The app draws a random result.",
+                    "If you win, claim your ETH prize.",
+                  ].map((step, i) => (
+                    <motion.li
+                      key={i}
+                      className="flex items-center"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.3 }}
+                    >
+                      <motion.span
+                        initial={{ scale: 0, rotate: -90 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{
+                          delay: i * 0.3 + 0.15,
+                          type: "spring",
+                          stiffness: 300,
+                        }}
+                        className="mr-3 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-indigo-900"
+                      >
+                        {i + 1}
+                      </motion.span>
+                      <motion.span whileHover={{ x: 4, color: "#fff" }}>{step}</motion.span>
+                    </motion.li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <div className="text-lg font-semibold">Recent winners/losers</div>
+                <ul className="mt-3 space-y-2 text-sm text-zinc-300">
                   {recentResults.length === 0 && (
                     <li className="text-zinc-400">No plays yet.</li>
                   )}
