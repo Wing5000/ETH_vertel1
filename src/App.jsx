@@ -271,9 +271,11 @@ export default function App() {
 
     loadUser();
     const iv = setInterval(loadUser, 5000);
+    provider.on("block", loadUser);
     return () => {
       mounted = false;
       clearInterval(iv);
+      provider.off("block", loadUser);
     };
   }, [contract, provider, account]);
 
