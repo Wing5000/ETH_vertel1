@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrowserProvider, Contract, formatEther, parseEther } from "ethers";
+import Web3Modal from "web3modal";
+import WalletConnectProvider from "@walletconnect/web3-provider";
 import logo from "./assets/tubbly-logo.svg";
 
 /**
@@ -68,6 +70,22 @@ const ABI = [
 const PPM_DEN = 1_000_000;
 const SEPOLIA_CHAIN_ID = 11155111;
 
+const providerOptions = {
+  walletconnect: {
+    package: WalletConnectProvider,
+    options: {
+      rpc: {
+        [SEPOLIA_CHAIN_ID]: "https://ethereum-sepolia.publicnode.com",
+      },
+    },
+  },
+};
+
+const web3Modal = new Web3Modal({
+  cacheProvider: false,
+  providerOptions,
+});
+
 function pctFromPpm(ppm) {
   return Number(ppm) / 10_000; // 10000 ppm = 1%
 }
@@ -112,34 +130,39 @@ export default function App() {
   }, [account, lastPlayedBlock, currentBlock]);
 
   async function connect() {
-    if (!window.ethereum) {
-      alert("Please install MetaMask");
-      return;
+    try {
+      const instance = await web3Modal.connect();
+      const prov = new BrowserProvider(instance);
+      const net = await prov.getNetwork();
+      setNetworkOk(Number(net.chainId) === SEPOLIA_CHAIN_ID);
+      if (Number(net.chainId) !== SEPOLIA_CHAIN_ID) {
+        try {
+          await instance.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0xaa36a7" }], // 11155111
+          });
+        } catch {}
+      }
+
+      const accounts = await prov.send("eth_requestAccounts", []);
+      const s = await prov.getSigner();
+
+      setProvider(prov);
+      setSigner(s);
+      setAccount(accounts[0]);
+
+      const c = new Contract(CONTRACT_ADDRESS, ABI, s);
+      setContract(c);
+    } catch (e) {
+      setStatus(e?.shortMessage || e?.message || "Connection failed");
     }
-    const prov = new BrowserProvider(window.ethereum);
-    const net = await prov.getNetwork();
-    setNetworkOk(Number(net.chainId) === SEPOLIA_CHAIN_ID);
-    if (Number(net.chainId) !== SEPOLIA_CHAIN_ID) {
-      try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0xaa36a7" }], // 11155111
-        });
-      } catch {}
-    }
-
-    const accounts = await prov.send("eth_requestAccounts", []);
-    const s = await prov.getSigner();
-
-    setProvider(prov);
-    setSigner(s);
-    setAccount(accounts[0]);
-
-    const c = new Contract(CONTRACT_ADDRESS, ABI, s);
-    setContract(c);
   }
 
-  function disconnect() {
+  async function disconnect() {
+    try {
+      await web3Modal.clearCachedProvider();
+      await provider?.provider?.disconnect?.();
+    } catch {}
     setProvider(null);
     setSigner(null);
     setAccount("");
@@ -236,7 +259,15 @@ export default function App() {
         setStatus("Finished. (No Result event decoded)");
       }
     } catch (e) {
-      setStatus(e?.shortMessage || e?.message || "Tx failed");
+      if (
+        e?.code === "ACTION_REJECTED" ||
+        /user rejected/i.test(e?.shortMessage || e?.message || "")
+      ) {
+        setRejected(true);
+        setStatus("");
+      } else {
+        setStatus(e?.shortMessage || e?.message || "Tx failed");
+      }
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
@@ -247,12 +278,21 @@ export default function App() {
     if (!contract) return;
     try {
       setLoading(true);
+      setRejected(false);
       const tx = await contract.claim();
       addLog({ text: `claim(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       await tx.wait();
       setStatus("Claimed (if any pending)");
     } catch (e) {
-      setStatus(e?.shortMessage || e?.message || "Claim failed");
+      if (
+        e?.code === "ACTION_REJECTED" ||
+        /user rejected/i.test(e?.shortMessage || e?.message || "")
+      ) {
+        setRejected(true);
+        setStatus("");
+      } else {
+        setStatus(e?.shortMessage || e?.message || "Claim failed");
+      }
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
@@ -312,6 +352,7 @@ export default function App() {
     if (!contract) return;
     try {
       setLoading(true);
+      setRejected(false);
       const prize = parseEther(pPrize || "0");
       const fee = parseEther(pFee || "0");
       const ppm = ppmFromPct(pPct || "0");
@@ -323,7 +364,15 @@ export default function App() {
       await tx.wait();
       setStatus("Parameters updated");
     } catch (e) {
-      setStatus(e?.shortMessage || e?.message || "setParams failed");
+      if (
+        e?.code === "ACTION_REJECTED" ||
+        /user rejected/i.test(e?.shortMessage || e?.message || "")
+      ) {
+        setRejected(true);
+        setStatus("");
+      } else {
+        setStatus(e?.shortMessage || e?.message || "setParams failed");
+      }
       addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
@@ -346,16 +395,20 @@ export default function App() {
     </motion.div>
   );
 
-  const RejectedMessage = () => (
+  const StatusMessage = ({ children, k = "status" }) => (
     <motion.div
-      key="rejected"
+      key={k}
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="w-full text-center px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
+      className="w-full text-center px-4 py-2 rounded-xl bg-amber-600/20 border border-amber-500/40 text-amber-300"
     >
-      User rejected action.
+      {children}
     </motion.div>
+  );
+
+  const RejectedMessage = () => (
+    <StatusMessage k="rejected">User rejected action.</StatusMessage>
   );
 
   return (
@@ -442,19 +495,6 @@ export default function App() {
             </div>
 
             <div className="mt-4 min-h-[44px] flex items-center gap-3">
-              <AnimatePresence>
-                {wonState === true && (
-                  <motion.div
-                    key="win"
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="w-full text-center px-4 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300"
-                  >You WON! Payout: {formatEther(prizeWei || 0n)} ETH 🎉</motion.div>
-                )}
-                {wonState === false && <LostMessage />}
-                {rejected && <RejectedMessage />}
-              </AnimatePresence>
               {loading && wonState === null ? (
                 <div className="relative w-full bg-zinc-700 rounded-full h-6 overflow-hidden">
                   <div className="progress-bar bg-indigo-400 h-full w-full flex items-center justify-center">
@@ -462,7 +502,22 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                !rejected && status && <div className="text-zinc-400 text-sm">{status}</div>
+                <AnimatePresence>
+                  {wonState === true && (
+                    <motion.div
+                      key="win"
+                      initial={{ scale: 0.9, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="w-full text-center px-4 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300"
+                    >
+                      You WON! Payout: {formatEther(prizeWei || 0n)} ETH 🎉
+                    </motion.div>
+                  )}
+                  {wonState === false && <LostMessage />}
+                  {rejected && <RejectedMessage />}
+                  {!rejected && status && <StatusMessage k="status">{status}</StatusMessage>}
+                </AnimatePresence>
               )}
             </div>
           </div>
