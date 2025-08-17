@@ -99,8 +99,9 @@ export default function App() {
   const [wonState, setWonState] = useState(null);
   const [logLines, setLogLines] = useState([]);
 
-  const addLog = (line) => setLogLines((l) => [line, ...l].slice(0, 50));
+  const addLog = (entry) => setLogLines((l) => [entry, ...l].slice(0, 50));
   const shortAddr = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
+  const shortHash = (h) => (h ? `${h.slice(0, 10)}…` : "");
 
   const canPlay = useMemo(() => {
     if (!account) return false;
@@ -183,12 +184,12 @@ export default function App() {
     try {
       setLoading(true);
       setWonState(null);
-      setStatus("Sending transaction…");
+      setStatus("");
 
       const saltVal = BigInt(salt || "0");
       const overrides = { value: feeWei };
       const tx = await contract.play(saltVal, overrides);
-      addLog(`play(tx: ${tx.hash.slice(0, 10)}…)`);
+      addLog({ text: `play(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       const rcpt = await tx.wait();
 
       let won = null;
@@ -201,10 +202,16 @@ export default function App() {
             prize = parsed.args.prizeAmount;
           }
           if (parsed?.name === "PrizePaid") {
-            addLog(`PrizePaid → ${formatEther(parsed.args.amount)} ETH`);
+            addLog({
+              text: `PrizePaid → ${formatEther(parsed.args.amount)} ETH`,
+              txHash: rcpt.transactionHash,
+            });
           }
           if (parsed?.name === "PrizePending") {
-            addLog(`PrizePending → ${formatEther(parsed.args.amount)} ETH`);
+            addLog({
+              text: `PrizePending → ${formatEther(parsed.args.amount)} ETH`,
+              txHash: rcpt.transactionHash,
+            });
           }
         } catch {}
       }
@@ -214,13 +221,13 @@ export default function App() {
         setStatus(`WIN! You won ${formatEther(prizeWei)} ETH 🎉`);
       } else if (won === false) {
         setWonState(false);
-        setStatus("Miss! Better luck next block ✨");
+        setStatus("Miss! Try again next block.");
       } else {
         setStatus("Finished. (No Result event decoded)");
       }
     } catch (e) {
       setStatus(e?.shortMessage || e?.message || "Tx failed");
-      addLog(`Error: ${e?.shortMessage || e?.message}`);
+      addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
     }
@@ -231,12 +238,12 @@ export default function App() {
     try {
       setLoading(true);
       const tx = await contract.claim();
-      addLog(`claim(tx: ${tx.hash.slice(0, 10)}…)`);
+      addLog({ text: `claim(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       await tx.wait();
       setStatus("Claimed (if any pending)");
     } catch (e) {
       setStatus(e?.shortMessage || e?.message || "Claim failed");
-      addLog(`Error: ${e?.shortMessage || e?.message}`);
+      addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
     }
@@ -247,12 +254,15 @@ export default function App() {
     try {
       setLoading(true);
       const tx = await contract.fund({ value: parseEther(amountEth || "0") });
-      addLog(`fund ${amountEth} ETH (tx: ${tx.hash.slice(0, 10)}…)`);
+      addLog({
+        text: `fund ${amountEth} ETH (tx: ${shortHash(tx.hash)})`,
+        txHash: tx.hash,
+      });
       await tx.wait();
       setStatus("Funded ✔");
     } catch (e) {
       setStatus(e?.shortMessage || e?.message || "Fund failed");
-      addLog(`Error: ${e?.shortMessage || e?.message}`);
+      addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
     }
@@ -284,12 +294,15 @@ export default function App() {
       const fee = parseEther(pFee || "0");
       const ppm = ppmFromPct(pPct || "0");
       const tx = await contract.setParams(prize, fee, ppm);
-      addLog(`setParams → prize ${pPrize} ETH, fee ${pFee} ETH, chance ${pPct}%`);
+      addLog({
+        text: `setParams → prize ${pPrize} ETH, fee ${pFee} ETH, chance ${pPct}%`,
+        txHash: tx.hash,
+      });
       await tx.wait();
       setStatus("Parameters updated");
     } catch (e) {
       setStatus(e?.shortMessage || e?.message || "setParams failed");
-      addLog(`Error: ${e?.shortMessage || e?.message}`);
+      addLog({ text: `Error: ${e?.shortMessage || e?.message}` });
     } finally {
       setLoading(false);
     }
@@ -403,7 +416,13 @@ export default function App() {
                   >Miss! Try again next block.</motion.div>
                 )}
               </AnimatePresence>
-              <div className="text-zinc-400 text-sm">{status}</div>
+              {loading && wonState === null ? (
+                <div className="w-full bg-zinc-700 rounded-full h-1 overflow-hidden">
+                  <div className="progress-bar bg-indigo-400 h-1 w-1/2" />
+                </div>
+              ) : (
+                <div className="text-zinc-400 text-sm">{status}</div>
+              )}
             </div>
           </div>
         </div>
@@ -491,7 +510,20 @@ export default function App() {
             <div className="mt-2 space-y-1 text-sm max-h-60 overflow-auto">
               {logLines.length === 0 && <div className="text-zinc-400">No activity yet.</div>}
               {logLines.map((l, idx) => (
-                <div key={idx} className="text-zinc-300">• {l}</div>
+                <div key={idx} className="text-zinc-300">
+                  • {l.txHash ? (
+                    <a
+                      href={`https://sepolia.etherscan.io/tx/${l.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      {l.text}
+                    </a>
+                  ) : (
+                    l.text
+                  )}
+                </div>
               ))}
             </div>
           </div>
