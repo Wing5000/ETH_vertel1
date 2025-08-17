@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrowserProvider, Contract, formatEther, parseEther } from "ethers";
 import logo from "./assets/tubbly-logo.svg";
@@ -101,6 +101,7 @@ export default function App() {
   const [rejected, setRejected] = useState(false);
   const [logLines, setLogLines] = useState([]);
   const [recentResults, setRecentResults] = useState([]);
+  const [canPlay, setCanPlay] = useState(false);
 
   const addLog = (entry) => setLogLines((l) => [entry, ...l].slice(0, 50));
   const shortAddr = (a) => {
@@ -113,12 +114,6 @@ export default function App() {
     const s = String(h);
     return `${s.slice(0, 10)}…`;
   };
-
-  const canPlay = useMemo(() => {
-    if (!account) return false;
-    if (lastPlayedBlock === 0n) return true;
-    return lastPlayedBlock < currentBlock;
-  }, [account, lastPlayedBlock, currentBlock]);
 
   useEffect(() => {
     if (!window.ethereum) return;
@@ -255,27 +250,30 @@ export default function App() {
     if (!contract || !provider || !account) return;
     let mounted = true;
 
-    async function loadUser() {
+    async function loadUser(blockNumber) {
       try {
-        const [pend, last, blk] = await Promise.all([
+        const [pend, last, can] = await Promise.all([
           contract.pendingPrizes(account),
           contract.lastPlayedBlock(account),
-          provider.getBlockNumber(),
+          contract.canPlayNow(account),
         ]);
+        const blk = blockNumber ?? (await provider.getBlockNumber());
         if (!mounted) return;
         setPendingMine(pend);
         setLastPlayedBlock(last);
         setCurrentBlock(BigInt(blk));
+        setCanPlay(can);
       } catch (e) {}
     }
 
     loadUser();
-    const iv = setInterval(loadUser, 5000);
-    provider.on("block", loadUser);
+    const iv = setInterval(() => loadUser(), 5000);
+    const onBlock = (bn) => loadUser(bn);
+    provider.on("block", onBlock);
     return () => {
       mounted = false;
       clearInterval(iv);
-      provider.off("block", loadUser);
+      provider.off("block", onBlock);
     };
   }, [contract, provider, account]);
 
