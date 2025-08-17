@@ -347,26 +347,26 @@ export default function App() {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col sm:flex-row gap-3 items-end">
-              <div className="flex-1">
-                <Label>User salt</Label>
+            <div className="mt-6">
+              <Label>User salt</Label>
+              <div className="mt-1 flex flex-col sm:flex-row gap-3 items-center">
                 <input
-                  className="w-full mt-1 px-4 py-3 rounded-2xl bg-black/60 border border-zinc-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="flex-1 w-full px-4 py-3 rounded-2xl bg-black/60 border border-zinc-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   placeholder="e.g. 12345"
                   value={salt}
                   onChange={(e) => setSalt(e.target.value.replace(/\D/g, ""))}
                 />
-                <div className="text-xs text-zinc-400 mt-1">Any number. Adds entropy, doesn’t change odds.</div>
+                <button
+                  disabled={!account || loading || !canPlay}
+                  onClick={doPlay}
+                  className={`px-6 py-3 rounded-2xl font-bold text-lg shadow transition ${
+                    !account || loading || !canPlay
+                      ? "bg-zinc-700 cursor-not-allowed"
+                      : "bg-amber-500 hover:bg-amber-400 text-black"
+                  }`}
+                >{canPlay ? "PLAY" : "Wait next block"}</button>
               </div>
-              <button
-                disabled={!account || loading || !canPlay}
-                onClick={doPlay}
-                className={`px-6 py-4 rounded-2xl font-bold text-lg shadow transition ${
-                  !account || loading || !canPlay
-                    ? "bg-zinc-700 cursor-not-allowed"
-                    : "bg-amber-500 hover:bg-amber-400 text-black"
-                }`}
-              >{canPlay ? "PLAY" : "Wait next block"}</button>
+              <div className="text-xs text-zinc-400 mt-1">Any number. Adds entropy, doesn’t change odds.</div>
             </div>
 
             <div className="mt-4 min-h-[44px] flex items-center gap-3">
