@@ -334,6 +334,17 @@ export default function App() {
     <span className="text-xs uppercase tracking-wider text-zinc-400">{children}</span>
   );
 
+  const InfoMessage = ({ children }) => (
+    <motion.div
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="w-full text-center px-4 py-2 rounded-xl bg-amber-600/20 border border-amber-500/40 text-amber-300"
+    >
+      {children}
+    </motion.div>
+  );
+
   const LostMessage = () => (
     <motion.div
       key="lose"
@@ -343,18 +354,6 @@ export default function App() {
       className="w-full text-center px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
     >
       You lost. Better luck next time!
-    </motion.div>
-  );
-
-  const RejectedMessage = () => (
-    <motion.div
-      key="rejected"
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="w-full text-center px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
-    >
-      User rejected action.
     </motion.div>
   );
 
@@ -453,16 +452,19 @@ export default function App() {
                   >You WON! Payout: {formatEther(prizeWei || 0n)} ETH 🎉</motion.div>
                 )}
                 {wonState === false && <LostMessage />}
-                {rejected && <RejectedMessage />}
+                {rejected && (
+                  <InfoMessage key="rejected">User rejected action.</InfoMessage>
+                )}
+                {!loading && !rejected && status && (
+                  <InfoMessage key="status">{status}</InfoMessage>
+                )}
               </AnimatePresence>
-              {loading && wonState === null ? (
+              {loading && wonState === null && (
                 <div className="relative w-full bg-zinc-700 rounded-full h-6 overflow-hidden">
                   <div className="progress-bar bg-indigo-400 h-full w-full flex items-center justify-center">
                     <span className="text-xs font-semibold text-indigo-900">{progressMessage}</span>
                   </div>
                 </div>
-              ) : (
-                !rejected && status && <div className="text-zinc-400 text-sm">{status}</div>
               )}
             </div>
           </div>
