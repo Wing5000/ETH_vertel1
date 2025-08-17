@@ -722,8 +722,8 @@ export default function App() {
                   {[
                     "Connect your wallet.",
                     "Enter any number and press Play.",
-                    "The app draws a random result.",
-                    "If you win, claim your ETH prize.",
+                    "You'll see the result in a moment.",
+                    "If you win, your ETH prize is sent automatically; if not, click Claim.",
                   ].map((step, i) => (
                     <motion.li
                       key={i}
