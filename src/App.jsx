@@ -674,20 +674,14 @@ export default function App() {
                 />
                 <button
                   disabled={!account || loading}
-                  onClick={canPlay ? doPlay : refreshChainData}
+                  onClick={doPlay}
                   className={`px-6 py-3 rounded-2xl font-bold text-lg shadow transition ${
                     !account || loading
                       ? "bg-zinc-700 cursor-not-allowed"
-                      : canPlay
-                      ? "bg-amber-500 hover:bg-amber-400 text-black"
-                      : "bg-zinc-700 hover:bg-zinc-600 cursor-pointer"
+                      : "bg-amber-500 hover:bg-amber-400 text-black"
                   }`}
                 >
-                  {!account
-                    ? "Connect wallet to play"
-                    : canPlay
-                    ? "Play"
-                    : `Wait (block ${nextAllowedBlock.toString()})`}
+                  {!account ? "Connect wallet to play" : "Play"}
                 </button>
               </div>
               <div className="text-xs text-zinc-400 mt-1">Any number. Adds entropy, doesn't change odds.</div>
