@@ -391,7 +391,7 @@ export default function App() {
       <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Tubbly logo" className="h-8 w-auto" />
-          <div className="font-semibold text-xl">Lucky Block — Instant Lottery (Sepolia)</div>
+          <div className="font-semibold text-xl">Instant Lottery (Sepolia)</div>
           <span className="text-xs ml-2 rounded-full bg-emerald-700/30 px-2 py-0.5 border border-emerald-600/40">Testnet</span>
         </div>
         <div className="flex items-center gap-3">
@@ -423,7 +423,7 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-3xl font-extrabold tracking-tight">Spin the Wheel</div>
-                <div className="text-zinc-400">1 try per address per block • Fair-ish on testnet</div>
+                <div className="text-zinc-400">One try per address per block – Fair play!</div>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold">{formatEther(prizeWei || 0n)} ETH</div>
