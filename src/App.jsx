@@ -428,11 +428,8 @@ export default function App() {
               </AnimatePresence>
               {loading && wonState === null ? (
                 <div className="relative w-full bg-zinc-700 rounded-full h-6 overflow-hidden">
-                  <div className="progress-bar bg-indigo-400 h-full w-1/2" />
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="marquee whitespace-nowrap text-xs font-semibold text-zinc-100 w-full text-center">
-                      Drawing in progress...
-                    </div>
+                  <div className="progress-bar bg-indigo-400 h-full w-full flex items-center justify-center">
+                    <span className="text-xs font-semibold text-indigo-900">Drawing in progress...</span>
                   </div>
                 </div>
               ) : (
