@@ -277,6 +277,57 @@ export default function App() {
     };
   }, [contract, provider, account]);
 
+  useEffect(() => {
+    if (!contract || !account) {
+      setLogLines([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const resultLogs = (await contract.queryFilter(contract.filters.Result(account))).map((ev) => ({
+          type: "Result",
+          ev,
+        }));
+        const paidLogs = (await contract.queryFilter(contract.filters.PrizePaid(account))).map((ev) => ({
+          type: "PrizePaid",
+          ev,
+        }));
+        const pendingLogs = (await contract.queryFilter(contract.filters.PrizePending(account))).map((ev) => ({
+          type: "PrizePending",
+          ev,
+        }));
+        const allLogs = [...resultLogs, ...paidLogs, ...pendingLogs]
+          .sort((a, b) => Number(b.ev.blockNumber) - Number(a.ev.blockNumber))
+          .slice(0, 50)
+          .map(({ type, ev }) => {
+            if (type === "Result") {
+              return {
+                text: ev.args.won
+                  ? `Result → WIN ${formatEther(ev.args.prizeAmount)} ETH`
+                  : "Result → Loss",
+                txHash: ev.transactionHash,
+              };
+            }
+            if (type === "PrizePaid") {
+              return {
+                text: `PrizePaid → ${formatEther(ev.args.amount)} ETH`,
+                txHash: ev.transactionHash,
+              };
+            }
+            return {
+              text: `PrizePending → ${formatEther(ev.args.amount)} ETH`,
+              txHash: ev.transactionHash,
+            };
+          });
+        if (!cancelled) setLogLines(allLogs);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [contract, account]);
+
   async function doPlay() {
     if (!contract || !signer) return;
     try {
