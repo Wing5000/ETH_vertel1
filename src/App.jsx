@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BrowserProvider, Contract, formatEther, parseEther } from "ethers";
 import logo from "./assets/tubbly-logo.svg";
@@ -246,36 +246,35 @@ export default function App() {
     };
   }, [contract, provider]);
 
-  useEffect(() => {
-    if (!contract || !provider || !account) return;
-    let mounted = true;
-
-    async function loadUser(blockNumber) {
+  const refreshUser = useCallback(
+    async (blockNumber) => {
+      if (!contract || !provider || !account) return;
       try {
-        const [pend, last, can] = await Promise.all([
+        const [pend, last] = await Promise.all([
           contract.pendingPrizes(account),
           contract.lastPlayedBlock(account),
-          contract.canPlayNow(account),
         ]);
         const blk = blockNumber ?? (await provider.getBlockNumber());
-        if (!mounted) return;
         setPendingMine(pend);
         setLastPlayedBlock(last);
         setCurrentBlock(BigInt(blk));
-        setCanPlay(can);
+        setCanPlay(BigInt(blk) > last);
       } catch (e) {}
-    }
+    },
+    [contract, provider, account]
+  );
 
-    loadUser();
-    const iv = setInterval(() => loadUser(), 5000);
-    const onBlock = (bn) => loadUser(bn);
+  useEffect(() => {
+    if (!contract || !provider || !account) return;
+    refreshUser();
+    const iv = setInterval(() => refreshUser(), 5000);
+    const onBlock = (bn) => refreshUser(bn);
     provider.on("block", onBlock);
     return () => {
-      mounted = false;
       clearInterval(iv);
       provider.off("block", onBlock);
     };
-  }, [contract, provider, account]);
+  }, [refreshUser, contract, provider, account]);
 
   useEffect(() => {
     if (!contract || !account) {
@@ -342,6 +341,7 @@ export default function App() {
       const tx = await contract.play(saltVal, overrides);
       addLog({ text: `play(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       const rcpt = await tx.wait();
+      await refreshUser(rcpt.blockNumber);
 
       let won = null;
       let prize = 0n;
