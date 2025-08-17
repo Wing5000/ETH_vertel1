@@ -609,7 +609,6 @@ export default function App() {
         <div className="flex items-center gap-3">
           <img src={logo} alt="Tubbly logo" className="h-8 w-auto" />
           <div className="font-semibold text-xl">Instant Lottery (Sepolia)</div>
-          <span className="text-xs ml-2 rounded-full bg-emerald-700/30 px-2 py-0.5 border border-emerald-600/40">Testnet</span>
         </div>
         <div className="flex items-center gap-3">
           {account ? (
