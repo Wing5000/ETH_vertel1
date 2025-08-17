@@ -431,6 +431,47 @@ export default function App() {
     }
   }
 
+  async function refreshChainData() {
+    if (!provider || !contract || !account) return;
+    try {
+      const [
+        blk,
+        next,
+        last,
+        pend,
+        prize,
+        fee,
+        chance,
+        bal,
+      ] = await Promise.all([
+        provider.getBlockNumber(),
+        contract.nextAllowedBlock(account),
+        contract.lastPlayedBlock(account),
+        contract.pendingPrizes(account),
+        contract.prizeWei(),
+        contract.entryFeeWei(),
+        contract.winChancePpm(),
+        contract.contractBalance(),
+      ]);
+      const current = BigInt(blk);
+      setCurrentBlock(current);
+      setNextAllowedBlock(next);
+      setLastPlayedBlock(last);
+      setPendingMine(pend);
+      setPrizeWei(prize);
+      setFeeWei(fee);
+      setChancePpm(Number(chance));
+      setContractBal(bal);
+      if (current >= next) {
+        setStatus("New block detected! You can play now.");
+      } else {
+        setStatus("");
+      }
+    } catch (e) {
+      console.error("Error refreshing chain data:", e);
+    }
+  }
+
   async function doClaim() {
     if (!contract) return;
     try {
@@ -632,15 +673,21 @@ export default function App() {
                   onChange={(e) => setSalt(e.target.value.replace(/\D/g, ""))}
                 />
                 <button
-                  disabled={!account || loading || !canPlay}
-                  onClick={doPlay}
+                  disabled={!account || loading}
+                  onClick={canPlay ? doPlay : refreshChainData}
                   className={`px-6 py-3 rounded-2xl font-bold text-lg shadow transition ${
-                    !account || loading || !canPlay
+                    !account || loading
                       ? "bg-zinc-700 cursor-not-allowed"
-                      : "bg-amber-500 hover:bg-amber-400 text-black"
+                      : canPlay
+                      ? "bg-amber-500 hover:bg-amber-400 text-black"
+                      : "bg-zinc-700 hover:bg-zinc-600 cursor-pointer"
                   }`}
                 >
-                  {!account ? "Connect wallet to play" : canPlay ? "Play" : `Wait (block ${nextAllowedBlock.toString()})`}
+                  {!account
+                    ? "Connect wallet to play"
+                    : canPlay
+                    ? "Play"
+                    : `Wait (block ${nextAllowedBlock.toString()})`}
                 </button>
               </div>
               <div className="text-xs text-zinc-400 mt-1">Any number. Adds entropy, doesn't change odds.</div>
