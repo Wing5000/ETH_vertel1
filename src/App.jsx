@@ -434,12 +434,20 @@ export default function App() {
   async function refreshBlocks() {
     if (!provider || !contract || !account) return;
     try {
-      const [blk, next] = await Promise.all([
+      const [blk, next, last] = await Promise.all([
         provider.getBlockNumber(),
         contract.nextAllowedBlock(account),
+        contract.lastPlayedBlock(account),
       ]);
-      setCurrentBlock(BigInt(blk));
+      const current = BigInt(blk);
+      setCurrentBlock(current);
       setNextAllowedBlock(next);
+      setLastPlayedBlock(last);
+      if (current >= next) {
+        setStatus("New block detected! You can play now.");
+      } else {
+        setStatus("");
+      }
     } catch (e) {
       console.error("Error refreshing block data:", e);
     }
