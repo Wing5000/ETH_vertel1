@@ -224,10 +224,10 @@ export default function App() {
 
       if (won === true) {
         setWonState(true);
-        setStatus(`WIN! You won ${formatEther(prizeWei)} ETH 🎉`);
+        setStatus("");
       } else if (won === false) {
         setWonState(false);
-        setStatus("You lost. Better luck next time!");
+        setStatus("");
       } else {
         setStatus("Finished. (No Result event decoded)");
       }
@@ -324,7 +324,7 @@ export default function App() {
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
+      className="w-full text-center px-4 py-2 rounded-xl bg-rose-600/20 border border-rose-500/40 text-rose-300"
     >
       You lost. Better luck next time!
     </motion.div>
@@ -421,7 +421,7 @@ export default function App() {
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="px-4 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300"
+                    className="w-full text-center px-4 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-300"
                   >You WON! Payout: {formatEther(prizeWei || 0n)} ETH 🎉</motion.div>
                 )}
                 {wonState === false && <LostMessage />}
@@ -430,7 +430,7 @@ export default function App() {
                 <div className="relative w-full bg-zinc-700 rounded-full h-6 overflow-hidden">
                   <div className="progress-bar bg-indigo-400 h-full w-1/2" />
                   <div className="absolute inset-0 flex items-center">
-                    <div className="marquee whitespace-nowrap text-xs font-semibold text-zinc-100">
+                    <div className="marquee whitespace-nowrap text-xs font-semibold text-zinc-100 w-full text-center">
                       Drawing in progress...
                     </div>
                   </div>
