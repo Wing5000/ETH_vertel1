@@ -431,25 +431,44 @@ export default function App() {
     }
   }
 
-  async function refreshBlocks() {
+  async function refreshChainData() {
     if (!provider || !contract || !account) return;
     try {
-      const [blk, next, last] = await Promise.all([
+      const [
+        blk,
+        next,
+        last,
+        pend,
+        prize,
+        fee,
+        chance,
+        bal,
+      ] = await Promise.all([
         provider.getBlockNumber(),
         contract.nextAllowedBlock(account),
         contract.lastPlayedBlock(account),
+        contract.pendingPrizes(account),
+        contract.prizeWei(),
+        contract.entryFeeWei(),
+        contract.winChancePpm(),
+        contract.contractBalance(),
       ]);
       const current = BigInt(blk);
       setCurrentBlock(current);
       setNextAllowedBlock(next);
       setLastPlayedBlock(last);
+      setPendingMine(pend);
+      setPrizeWei(prize);
+      setFeeWei(fee);
+      setChancePpm(Number(chance));
+      setContractBal(bal);
       if (current >= next) {
         setStatus("New block detected! You can play now.");
       } else {
         setStatus("");
       }
     } catch (e) {
-      console.error("Error refreshing block data:", e);
+      console.error("Error refreshing chain data:", e);
     }
   }
 
@@ -655,7 +674,7 @@ export default function App() {
                 />
                 <button
                   disabled={!account || loading}
-                  onClick={canPlay ? doPlay : refreshBlocks}
+                  onClick={canPlay ? doPlay : refreshChainData}
                   className={`px-6 py-3 rounded-2xl font-bold text-lg shadow transition ${
                     !account || loading
                       ? "bg-zinc-700 cursor-not-allowed"
