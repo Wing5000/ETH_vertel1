@@ -220,6 +220,7 @@ export default function App() {
     }
 
     async function handleBlock(blockNumber) {
+      setCurrentBlock(BigInt(blockNumber));
       try {
         const events = await contract.queryFilter(filter, lastBlock + 1, blockNumber);
         if (!mounted) return;
@@ -342,6 +343,8 @@ export default function App() {
       const tx = await contract.play(saltVal, overrides);
       addLog({ text: `play(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
       const rcpt = await tx.wait();
+      setLastPlayedBlock(BigInt(rcpt.blockNumber));
+      setCurrentBlock(BigInt(rcpt.blockNumber));
 
       let won = null;
       let prize = 0n;
