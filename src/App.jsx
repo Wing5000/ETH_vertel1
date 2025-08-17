@@ -103,8 +103,16 @@ export default function App() {
   const [recentResults, setRecentResults] = useState([]);
 
   const addLog = (entry) => setLogLines((l) => [entry, ...l].slice(0, 50));
-  const shortAddr = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
-  const shortHash = (h) => (h ? `${h.slice(0, 10)}…` : "");
+  const shortAddr = (a) => {
+    if (!a) return "";
+    const s = String(a);
+    return `${s.slice(0, 6)}…${s.slice(-4)}`;
+  };
+  const shortHash = (h) => {
+    if (!h) return "";
+    const s = String(h);
+    return `${s.slice(0, 10)}…`;
+  };
 
   const canPlay = useMemo(() => {
     if (!account) return false;
@@ -197,6 +205,7 @@ export default function App() {
         if (!mounted) return;
         setRecentResults(
           events
+            .filter((ev) => ev.args)
             .slice(-5)
             .reverse()
             .map((ev) => ({
@@ -210,8 +219,10 @@ export default function App() {
 
     loadRecent();
     contract.on(filter, (player, won, prizeAmount, event) => {
+      if (!mounted) return;
+      if (!event?.transactionHash) return;
       setRecentResults((r) =>
-        [{ player, won, txHash: event.transactionHash }, ...r].slice(0, 5)
+        [{ player, won: Boolean(won), txHash: event.transactionHash }, ...r].slice(0, 5)
       );
     });
     return () => {
