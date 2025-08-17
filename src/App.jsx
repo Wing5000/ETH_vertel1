@@ -3,22 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BrowserProvider, Contract, formatEther, parseEther } from "ethers";
 import logo from "./assets/tubbly-logo.svg";
 
-/**
- * 🎰 BlockInstantLottery — Casino-style dApp UI (Sepolia)
- * - Connect wallet (MetaMask)
- * - Show current params (prize, fee, chance, contract balance)
- * - Play (1 try / address / block) with userSalt
- * - See immediate result (win/lose) + confetti on win
- * - Claim pending prizes
- * - Fund contract
- * - Owner panel: setParams
- *
- * Notes:
- * - Chain: Sepolia (11155111)
- * - Randomness is not secure (prevrandao); for small prizes only.
- */
-
-const CONTRACT_ADDRESS = "0x1e6492d25C4890Ccc49389fc50385e6FA25c5477"; // your deployed address (Sepolia)
+const CONTRACT_ADDRESS = "0x1e6492d25C4890Ccc49389fc50385e6FA25c5477";
 
 // Minimal ABI for the functions/events we use
 const ABI = [
@@ -158,7 +143,7 @@ export default function App() {
 
     const c = new Contract(CONTRACT_ADDRESS, ABI, s);
     setContract(c);
-
+    
     // POPRAWKA: Od razu pobierz dane użytkownika po połączeniu
     if (accounts[0]) {
       try {
@@ -280,6 +265,7 @@ export default function App() {
     };
   }, [contract, provider]);
 
+  // POPRAWKA: Uproszczony useEffect do ładowania danych użytkownika
   useEffect(() => {
     if (!contract || !provider || !account) return;
     let mounted = true;
@@ -354,7 +340,9 @@ export default function App() {
             };
           });
         if (!cancelled) setLogLines(allLogs);
-      } catch {}
+      } catch (e) {
+        console.error("Error loading logs:", e);
+      }
     })();
     return () => {
       cancelled = true;
@@ -374,15 +362,16 @@ export default function App() {
       const overrides = { value: feeWei };
       const tx = await contract.play(saltVal, overrides);
       addLog({ text: `play(tx: ${shortHash(tx.hash)})`, txHash: tx.hash });
+      
       const rcpt = await tx.wait();
-
+      
       // POPRAWKA: Natychmiast po transakcji pobierz zaktualizowane dane
       const [newLastPlayed, newNext, newBlock] = await Promise.all([
         contract.lastPlayedBlock(account),
         contract.nextAllowedBlock(account),
         provider.getBlockNumber()
       ]);
-
+      
       setLastPlayedBlock(newLastPlayed);
       setNextAllowedBlock(newNext);
       setCurrentBlock(BigInt(newBlock));
@@ -547,7 +536,7 @@ export default function App() {
     </motion.div>
   );
 
-const LostMessage = () => (
+  const LostMessage = () => (
     <motion.div
       key="lose"
       initial={{ scale: 0.9, opacity: 0 }}
@@ -650,9 +639,11 @@ const LostMessage = () => (
                       ? "bg-zinc-700 cursor-not-allowed"
                       : "bg-amber-500 hover:bg-amber-400 text-black"
                   }`}
-                >{!account ? "Connect wallet to play" : canPlay ? "Play" : "Wait next block"}</button>
+                >
+                  {!account ? "Connect wallet to play" : canPlay ? "Play" : `Wait (block ${nextAllowedBlock.toString()})`}
+                </button>
               </div>
-              <div className="text-xs text-zinc-400 mt-1">Any number. Adds entropy, doesn’t change odds.</div>
+              <div className="text-xs text-zinc-400 mt-1">Any number. Adds entropy, doesn't change odds.</div>
             </div>
 
             <div className="mt-4 min-h-[44px] flex items-center gap-3">
@@ -762,6 +753,10 @@ const LostMessage = () => (
               <div>
                 <Label>Current block</Label>
                 <div>{currentBlock?.toString?.() || "0"}</div>
+              </div>
+              <div>
+                <Label>Next allowed block</Label>
+                <div>{nextAllowedBlock?.toString?.() || "0"}</div>
               </div>
               <div>
                 <Label>Your pending prize</Label>
