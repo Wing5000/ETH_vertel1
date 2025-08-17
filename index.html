@@ -8,6 +8,17 @@
   </head>
   <body class="min-h-screen bg-black">
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isMobile) {
+        document.getElementById('root').innerHTML =
+          '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;color:white;text-align:center;padding:1rem;font-family:sans-serif;">This site works only on desktop browsers.</div>';
+      } else {
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = '/src/main.jsx';
+        document.body.appendChild(script);
+      }
+    </script>
   </body>
 </html>
