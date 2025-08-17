@@ -196,10 +196,12 @@ export default function App() {
     if (!contract || !provider) return;
     let mounted = true;
     const filter = contract.filters.Result();
+    let lastBlock = 0;
 
     async function loadRecent() {
       try {
         const latest = await provider.getBlockNumber();
+        lastBlock = latest;
         const from = latest > 5000 ? latest - 5000 : 0;
         const events = await contract.queryFilter(filter, from, latest);
         if (!mounted) return;
@@ -217,17 +219,35 @@ export default function App() {
       } catch {}
     }
 
-    loadRecent();
-    contract.on(filter, (player, won, prizeAmount, event) => {
+    async function handleBlock(blockNumber) {
+      try {
+        const events = await contract.queryFilter(filter, lastBlock + 1, blockNumber);
+        if (!mounted) return;
+        if (events.length) {
+          setRecentResults((r) => {
+            const newEntries = events
+              .filter((ev) => ev.args)
+              .reverse()
+              .map((ev) => ({
+                player: ev.args.player,
+                won: ev.args.won,
+                txHash: ev.transactionHash,
+              }));
+            return [...newEntries, ...r].slice(0, 5);
+          });
+        }
+        lastBlock = blockNumber;
+      } catch {}
+    }
+
+    loadRecent().then(() => {
       if (!mounted) return;
-      if (!event?.transactionHash) return;
-      setRecentResults((r) =>
-        [{ player, won: Boolean(won), txHash: event.transactionHash }, ...r].slice(0, 5)
-      );
+      provider.on("block", handleBlock);
     });
+
     return () => {
       mounted = false;
-      contract.removeAllListeners(filter);
+      provider.off("block", handleBlock);
     };
   }, [contract, provider]);
 
