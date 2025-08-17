@@ -577,24 +577,29 @@ export default function App() {
                   </motion.li>
                 ))}
               </ul>
-              <ul className="space-y-2 text-sm text-zinc-300">
-                {recentResults.length === 0 && (
-                  <li className="text-zinc-400">No plays yet.</li>
-                )}
-                {recentResults.map((r, idx) => (
-                  <li key={idx} className="flex justify-between">
-                    <span className="font-mono">{shortAddr(r.player)}</span>
-                    <a
-                      href={`https://sepolia.etherscan.io/tx/${r.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={r.won ? "text-emerald-400" : "text-red-400"}
-                    >
-                      {r.won ? "Won" : "Lost"}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <div className="mb-2 text-sm font-semibold text-zinc-300">
+                  Recent winners/losers
+                </div>
+                <ul className="space-y-2 text-sm text-zinc-300">
+                  {recentResults.length === 0 && (
+                    <li className="text-zinc-400">No plays yet.</li>
+                  )}
+                  {recentResults.map((r, idx) => (
+                    <li key={idx} className="flex justify-between">
+                      <span className="font-mono">{shortAddr(r.player)}</span>
+                      <a
+                        href={`https://sepolia.etherscan.io/tx/${r.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={r.won ? "text-emerald-400" : "text-red-400"}
+                      >
+                        {r.won ? "Won" : "Lost"}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
